@@ -2,12 +2,11 @@ var express = require('express');
 var passport = require('passport');
 var configAuth = require('../config/auth');
 var nlp = require('nlp_compromise');
-var rita = require('rita');
 var router = express.Router();
-var graph = require('fbgraph');
 var Twit = require('twit');
 var request = require('request');
-var FB = require('fb');
+// var FB = require('fb');
+// var graph = require('fbgraph');
 var fs = require('fs');
 var T;
 
@@ -20,7 +19,6 @@ router.get('/login', function(req, res, next) {
 });
 
 router.get('/profile', isLoggedIn, function(req, res) {
-
 
 // THE FACEBOOK STUFF //
 
@@ -62,72 +60,78 @@ router.get('/profile', isLoggedIn, function(req, res) {
   var userName = req.user.twitter.username;
 
   //one issue: twit limits you to 200 tweets
-  T.get('statuses/user_timeline', { screen_name: userName, include_rts: 'true', count: 200 },  function (err, data, response) {
+  T.get('statuses/user_timeline', { screen_name: userName, include_rts: 'false', count: 200 },  function (err, data, response) {
 
     var tweetsList = [];
-    var whoList = [];
-    var whatList = [];
-    var whenList = [];
-    var whereList = [];
+    var peopleList = [];
+    var placesList = [];
+    var timeList = [];
+    var nounList = [];
     var whyList = [];
     var howList = [];
-
-    // go through my text messages
-
-    // var contents = fs.readFileSync('./data/texts.txt', 'utf8');
-    // var n = contents.split("\r\n");
-    // var texts = [];
-    // texts.push(n);
-    // console.log(texts)
+    var thinkList = [];
+    var feelList = [];
 
     // go through my tweets
 
     for (i=0; i<data.length; i++) {
       var tweeter = data[i].text;
 
-      //remove extra symbols - RT, @handle
-
+      // CLEAN THE TWEETS
+      // *****TO DO: Fix the @ clean up
+      // *****TO DO: Fix the utf-8 encoding
+      
       if (tweeter.includes("@")) {
-        if (tweeter.includes("RT")) {
-          tweet = tweeter.replace(/RT\s*@\S+\s/g, '');
-        } else tweet = tweeter.replace(/@\S+\s/g, '');
+        tweet = tweeter.replace(/@\S+\s/g, '');
       }
-      // console.log(tweet);
 
-      tweetsList.push(tweet);
+      if (tweeter.includes(".@")) {
+        tweet = tweeter.replace(/.@\S+\s/g, '');
+      }
 
-      // var rs = rita.RiString(tweet);
-      // console.log(rs.features());
+      if (tweeter.includes("http")) {
+        tweet = tweeter.replace(/http\S+/g, '');
+      }
 
-      // WHO?
+      console.log(tweet);
+
+      // tweetsList.push(tweet);
+
+      // List of people
       var person = nlp.text(tweet).people()[0];
       if (person != null) {
-        var people = person.text;
+        var people = (person.text).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
         if (people !== "I") {
           if (people !== "you") {
-            // whoList.push(people);
-            console.log(people);
+            peopleList.push(people);
           }
         }
       }
-      // console.log(person);
 
-      // WHAT?
-x
+      // List of nouns
+      var nouns = nlp.text(tweet).nouns();
+      for (k=0; k<nouns.length; k++) {
+        var noun = nouns[k].text
+        nounList.push(noun);
+      }
 
-      // WHEN?
-      var time = nlp.text(tweet).date
-      whenList.push(time);
+      // List of times
+      var time = nlp.text(tweet).dates()[0];
+      if (time !== undefined) {
+        // console.log(place)
+        var times = (time.text).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        timeList.push(times);
+      }
 
-      // WHERE?
+      // List of places
       var place = nlp.text(tweet).places()[0];
-      if (place != null) {
-        var places = place.text;
-        whereList.push(places);
+      if (place !== undefined) {
+        var places = (place.text).replace(/[.,\/#!$%\^&\*;:{}=\-_`~()]/g,"");
+        placesList.push(places);
       }
 
       // WHY?
-      if (tweet.includes("because") | tweet.includes("due to") | tweet.includes("explains") | tweet.includes("I don't know"))  {
+      if (tweet.includes("because") | tweet.includes("Because") | tweet.includes("due to") | tweet.includes("explains") | tweet.includes("I don't know"))  {
         whyList.push(tweet);
       }
 
@@ -135,7 +139,24 @@ x
       if (tweet.includes("by") | tweet.includes("By") | tweet.includes("in order to"))  {
         howList.push(tweet);
       }
+
+      // THINK WORDS
+      if (tweet.includes("think") | tweet.includes("thinks") | tweet.includes("thought") | tweet.includes("my idea"))  {
+        thinkList.push(tweet);
+      }
+
+      // FEEL WORDS
+      if (tweet.includes("feel") | tweet.includes("feels") | tweet.includes("felt") | tweet.includes("I like") | tweet.includes("I liked"))  {
+        feelList.push(tweet);
+      }
+
     }
+
+    // console.log(timeList);
+    // console.log(peopleList);
+    // console.log(nounList);
+    // console.log(placesList);
+    // console.log(tweetsList);
 })
 
 // THE INSTAGRAM STUFF //

@@ -28,7 +28,6 @@
     "passport-local": "~1.0.0",
     "passport-twitter": "^1.0.3",
     "request": "^2.79.0",
-    "rita": "^1.1.51",
     "serve-favicon": "~2.3.0",
     "twit": "^2.2.5"
   }
